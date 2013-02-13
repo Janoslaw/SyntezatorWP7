@@ -12,9 +12,12 @@ using Microsoft.Xna.Framework.Media;
 
 namespace Grajek
 {
-    /// <summary>
-    /// This is the main type for your game
-    /// </summary>
+    struct Klawisz // Struktura dla listy nagrywania
+    {
+        public int nr_klawisza;
+        public float czas;
+    }
+
     public class Game1 : Microsoft.Xna.Framework.Game
     {
         GraphicsDeviceManager graphics;
@@ -26,6 +29,13 @@ namespace Grajek
         private bool[] sprawdzKlawisz;
         private List<Vector2> listaKlawiszy = new List<Vector2>();
         private Synth synchronizator;
+
+        private List<Klawisz> ListaNagrania; // Lista zapamiêtuje kolejno naciskane klawisze. Pos³u¿y do nagrywania
+
+        private bool record = false; // Obs³u¿yæ ten przycisk !! Jako trigger true/false
+        float timer; // timer do odliczenia jak d³ugo by³ naciœniêty przycisk
+
+        private bool press = false; //pomocniczy
        
         private enum OscillatorTypes
         {
@@ -57,7 +67,9 @@ namespace Grajek
             synchronizator.Oscillator = Oscillator.Triangle;
 
             synchronizator.FadeInDuration = 20;
-            synchronizator.FadeOutDuration = 20;           
+            synchronizator.FadeOutDuration = 20;
+
+            ListaNagrania = new List<Klawisz>();
         }
       
         protected override void LoadContent()
@@ -92,22 +104,55 @@ namespace Grajek
 
             MouseState ms = Mouse.GetState();
 
-            wykryjNrAktualnegoKlawisza(ms);
+            wykryjNrAktualnegoKlawisza(ms);            
 
             if ( ms.LeftButton == ButtonState.Pressed)
-            {
-                nacisnietoKlawisz(aktualnyNrNuty);
+            {                
                 synchronizator.NoteOn(aktualnyNrNuty);
+                nacisnietoKlawisz(aktualnyNrNuty);
+
+                if (record == true)
+                {
+                    timer += (float)gameTime.ElapsedGameTime.TotalMilliseconds; //Rozpoczêcie naliczania "czasu przyciœciêcia klawisza"
+
+                    press = true; // do nagrywania
+                }
             }
             else if (ms.LeftButton == ButtonState.Released)
-            {
+            {  
                 synchronizator.NoteOff(aktualnyNrNuty); 
                 resetujKlawisz(aktualnyNrNuty);
+
+                if (record == true && press == true)
+                {
+                    //Lista kolejno naciskanych klawiszy razem z czasem naciskania; Nie mo¿na naciskaæ kilku na raz !!!
+                    Klawisz kl = new Klawisz();
+                    kl.nr_klawisza = aktualnyNrNuty;
+                    kl.czas = timer;
+
+                    ListaNagrania.Add(kl);
+                }
+
+                press = false; //rec
+                timer = 0;     //rec
             }
 
             synchronizator.Update(gameTime);
-
             base.Update(gameTime);
+        }
+
+        private void Play() // Odgrywanie zapamiêtanej piosenki
+        {
+            for (int i = 0; i < ListaNagrania.Count(); i++) 
+            {
+                synchronizator.NoteOn(ListaNagrania[i].nr_klawisza); // zaczyna graæ
+                nacisnietoKlawisz(ListaNagrania[i].nr_klawisza);
+                System.Threading.Thread.Sleep((int)ListaNagrania[i].czas); // czeka "czas" // Nie wiem czy dobrze zrzutuje float na int
+                synchronizator.NoteOff(ListaNagrania[i].nr_klawisza); //koñczy graæ
+                resetujKlawisz(ListaNagrania[i].nr_klawisza);
+
+                // Trzeba zrobiæ przycisk "record" oraz "play" w record nale¿y czyœciæ ListeNagarania, oraz ustawiaæ "bool record" na true albo false triggerem.
+            }
         }
 
         protected void wykryjNrAktualnegoKlawisza(MouseState poz)
@@ -244,11 +289,8 @@ namespace Grajek
                         sprawdzKlawisz[i] ? Color.Aqua : Color.Black, 0.0f, Vector2.Zero, SpriteEffects.None, 0.7f);
                 }
             }
-
-         //   spriteBatch.DrawString(new SpriteFont(), "Oktawa" + zmienOktawe.ToString(), new Vector2(10, 360), Color.White);
+         
             spriteBatch.End();
-
-
 
             base.Draw(gameTime);
         }
