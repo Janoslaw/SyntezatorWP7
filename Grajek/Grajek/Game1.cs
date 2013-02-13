@@ -26,7 +26,7 @@ namespace Grajek
         private bool[] sprawdzKlawisz;
         private List<Vector2> listaKlawiszy = new List<Vector2>();
         private Synth synchronizator;
-        private OscillatorTypes zmienOktawe = OscillatorTypes.Triangle;
+       
         private enum OscillatorTypes
         {
             Sine,
@@ -45,47 +45,26 @@ namespace Grajek
 
             // Extend battery life under lock.
             InactiveSleepTime = TimeSpan.FromSeconds(1);
-
-
         }
 
-        /// <summary>
-        /// Allows the game to perform any initialization it needs to before starting to run.
-        /// This is where it can query for any required services and load any non-graphic
-        /// related content.  Calling base.Initialize will enumerate through any components
-        /// and initialize them as well.
-        /// </summary>
         protected override void Initialize()
         {
             // TODO: Add your initialization logic here
-            synchronizator = new Synth();
-            ustawTypOscylatora();
+           
             base.Initialize();
 
-            TouchPanel.EnabledGestures = GestureType.DoubleTap | GestureType.Tap | GestureType.Hold | GestureType.FreeDrag;
-            TouchPanelCapabilities mozliwosci = TouchPanel.GetCapabilities();
-        }
+            synchronizator = new Synth();
+            synchronizator.Oscillator = Oscillator.Triangle;
 
-
-        protected void ustawTypOscylatora()
-        {
-            if (zmienOktawe == OscillatorTypes.Sine)
-                synchronizator.Oscillator = Oscillator.Sine;
-            else if (zmienOktawe == OscillatorTypes.Triangle)
-                synchronizator.Oscillator = Oscillator.Triangle;
-            else if (zmienOktawe == OscillatorTypes.Square)
-                synchronizator.Oscillator = Oscillator.Square;
-            else
-                synchronizator.Oscillator = Oscillator.Sawtooth;
+            synchronizator.FadeInDuration = 20;
+            synchronizator.FadeOutDuration = 20;           
         }
-        /// <summary>
-        /// LoadContent will be called once per game and is the place to load
-        /// all of your content.
-        /// </summary>
+      
         protected override void LoadContent()
         {
             // Create a new SpriteBatch, which can be used to draw textures.
             spriteBatch = new SpriteBatch(GraphicsDevice);
+
             //rysujemy klawisze
             tekstura = new Texture2D(GraphicsDevice, 1, 1);
             tekstura.SetData(new[] { Color.White });
@@ -99,80 +78,65 @@ namespace Grajek
             rozmiarKlawiszy = new Vector2(800, 600);
             // TODO: use this.Content to load your game content here
         }
-
-        /// <summary>
-        /// UnloadContent will be called once per game and is the place to unload
-        /// all content.
-        /// </summary>
+      
         protected override void UnloadContent()
         {
             // TODO: Unload any non ContentManager content here
         }
-
-        /// <summary>
-        /// Allows the game to run logic such as updating the world,
-        /// checking for collisions, gathering input, and playing audio.
-        /// </summary>
-        /// <param name="gameTime">Provides a snapshot of timing values.</param>
+       
         protected override void Update(GameTime gameTime)
         {
             // Allows the game to exit
             if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed)
-                this.Exit();
+                this.Exit();     
 
-            // TODO: Add your update logic here
-            while (TouchPanel.IsGestureAvailable)
+            MouseState ms = Mouse.GetState();
+
+            wykryjNrAktualnegoKlawisza(ms);
+
+            if ( ms.LeftButton == ButtonState.Pressed)
             {
-                GestureSample gest = TouchPanel.ReadGesture();
-
-                wykryjNrAktualnegoKlawisza(gest);
-
-                if (gest.GestureType == GestureType.Hold || gest.GestureType == GestureType.Tap)
-                {
-                    nacisnietoKlawisz(aktualnyNrNuty);
-                    synchronizator.NoteOn(aktualnyNrNuty);
-                }
-                else
-                {
-                    resetujKlawisz(aktualnyNrNuty);
-                    synchronizator.NoteOff(aktualnyNrNuty);
-                }
-
-                synchronizator.Update(gameTime);
-
-                base.Update(gameTime);
+                nacisnietoKlawisz(aktualnyNrNuty);
+                synchronizator.NoteOn(aktualnyNrNuty);
+            }
+            else if (ms.LeftButton == ButtonState.Released)
+            {
+                synchronizator.NoteOff(aktualnyNrNuty); 
+                resetujKlawisz(aktualnyNrNuty);
             }
 
+            synchronizator.Update(gameTime);
 
+            base.Update(gameTime);
         }
 
-        protected void wykryjNrAktualnegoKlawisza(GestureSample gest)
-        {
-            if (gest.Position.X < 130 && gest.Position.X > 70 && gest.Position.Y < 280)
+        protected void wykryjNrAktualnegoKlawisza(MouseState poz)
+        {            
+            if (poz.X < 130 && poz.X > 70 && poz.Y < 280)
                 aktualnyNrNuty = 1;
-            else if (gest.Position.X < 100)
+            else if (poz.X < 100)
                 aktualnyNrNuty = 0;
-            else if (gest.Position.X < 230 && gest.Position.X > 170 && gest.Position.Y < 280)
+            else if (poz.X < 230 && poz.X > 170 && poz.Y < 280)
                 aktualnyNrNuty = 3;
-            else if (gest.Position.X < 201)
+            else if (poz.X < 201)
                 aktualnyNrNuty = 2;
-            else if (gest.Position.X < 430 && gest.Position.X > 370 && gest.Position.Y < 280)
+            else if (poz.X < 430 && poz.X > 370 && poz.Y < 280)
                 aktualnyNrNuty = 6;
-            else if (gest.Position.X < 301)
+            else if (poz.X < 301)
                 aktualnyNrNuty = 4;
-            else if (gest.Position.X < 401)
+            else if (poz.X < 401)
                 aktualnyNrNuty = 5;
-            else if (gest.Position.X < 530 && gest.Position.X > 470 && gest.Position.Y < 280)
+            else if (poz.X < 530 && poz.X > 470 && poz.Y < 280)
                 aktualnyNrNuty = 8;
-            else if (gest.Position.X < 501)
+            else if (poz.X < 501)
                 aktualnyNrNuty = 7;
-            else if (gest.Position.X < 630 && gest.Position.X > 570 && gest.Position.Y < 280)
+            else if (poz.X < 630 && poz.X > 570 && poz.Y < 280)
                 aktualnyNrNuty = 10;
-            else if (gest.Position.X < 601)
+            else if (poz.X < 601)
                 aktualnyNrNuty = 9;
-            else if (gest.Position.X < 701)
+            else if (poz.X < 701)
                 aktualnyNrNuty = 11;
-            else if (gest.Position.X < 800)
+            else if (poz.X < 800)
                 aktualnyNrNuty = 12;
         }
 
@@ -187,10 +151,7 @@ namespace Grajek
             if (sprawdzKlawisz.Length > nrNuty)
                 sprawdzKlawisz[nrNuty] = false;
         }
-        /// <summary>
-        /// This is called when the game should draw itself.
-        /// </summary>
-        /// <param name="gameTime">Provides a snapshot of timing values.</param>
+       
         protected override void Draw(GameTime gameTime)
         {
             GraphicsDevice.Clear(Color.CornflowerBlue);
