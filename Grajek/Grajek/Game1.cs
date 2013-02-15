@@ -16,6 +16,7 @@ namespace Grajek
     {
         public int nr_klawisza;
         public float czas;
+        public float oczekiwanie;
     }
 
     public class Game1 : Microsoft.Xna.Framework.Game
@@ -33,7 +34,9 @@ namespace Grajek
         private List<Klawisz> ListaNagrania; // Lista zapamiêtuje kolejno naciskane klawisze. Pos³u¿y do nagrywania
 
         private bool record = false; // Obs³u¿yæ ten przycisk !! Jako trigger true/false
-        float timer; // timer do odliczenia jak d³ugo by³ naciœniêty przycisk
+        float timer; // Timer do odliczenia jak d³ugo by³ naciœniêty przycisk
+        float timer_k2k; // Timer key to key, czyli czas od puszczenia przycisku do naciœcniêcia kolejnego. Nieobs³u¿one jeszcze
+
 
         private bool press = false; //pomocniczy
        
@@ -64,7 +67,7 @@ namespace Grajek
             base.Initialize();
 
             synchronizator = new Synth();
-            synchronizator.Oscillator = Oscillator.Triangle;
+            synchronizator.Oscillator = Oscillator.Triangle; 
 
             synchronizator.FadeInDuration = 20;
             synchronizator.FadeOutDuration = 20;
@@ -129,6 +132,7 @@ namespace Grajek
                     Klawisz kl = new Klawisz();
                     kl.nr_klawisza = aktualnyNrNuty;
                     kl.czas = timer;
+                    kl.oczekiwanie = 0;// tu nale¿y wstawiæ i obs³u¿yæ timer_k2k.
 
                     ListaNagrania.Add(kl);
                 }
@@ -145,9 +149,10 @@ namespace Grajek
         {
             for (int i = 0; i < ListaNagrania.Count(); i++) 
             {
+                System.Threading.Thread.Sleep((int)ListaNagrania[i].oczekiwanie); // Czas oczekiwanie miêdzy naciœnieciem kolejnych klawiszy.
                 synchronizator.NoteOn(ListaNagrania[i].nr_klawisza); // zaczyna graæ
                 nacisnietoKlawisz(ListaNagrania[i].nr_klawisza);
-                System.Threading.Thread.Sleep((int)ListaNagrania[i].czas); // czeka "czas" // Nie wiem czy dobrze zrzutuje float na int
+                System.Threading.Thread.Sleep((int)ListaNagrania[i].czas); // czeka "czas" - powinien przez ca³y ten czas graæ.
                 synchronizator.NoteOff(ListaNagrania[i].nr_klawisza); //koñczy graæ
                 resetujKlawisz(ListaNagrania[i].nr_klawisza);
 
