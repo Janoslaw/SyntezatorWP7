@@ -23,6 +23,7 @@ namespace Grajek
     {
         GraphicsDeviceManager graphics;
         SpriteBatch spriteBatch;
+        SpriteFont Font1;
         private Texture2D tekstura;
         private Vector2 pozycjaKlawiszy;
         private Vector2 rozmiarKlawiszy;
@@ -67,7 +68,7 @@ namespace Grajek
             base.Initialize();
 
             synchronizator = new Synth();
-            synchronizator.Oscillator = Oscillator.Triangle; 
+            synchronizator.Oscillator = Oscillator.Square;
 
             synchronizator.FadeInDuration = 20;
             synchronizator.FadeOutDuration = 20;
@@ -90,7 +91,12 @@ namespace Grajek
             }
 
             pozycjaKlawiszy = new Vector2(0, 0);
-            rozmiarKlawiszy = new Vector2(800, 600);
+            rozmiarKlawiszy = new Vector2(800, 380);
+
+            Font1 = Content.Load<SpriteFont>("Arial");
+
+            // TODO: Load your game content here            
+           
             // TODO: use this.Content to load your game content here
         }
       
@@ -294,7 +300,16 @@ namespace Grajek
                         sprawdzKlawisz[i] ? Color.Aqua : Color.Black, 0.0f, Vector2.Zero, SpriteEffects.None, 0.7f);
                 }
             }
+
+            spriteBatch.Draw(tekstura, new Rectangle(30, 390, 360, 80), Color.DarkMagenta);
+            //spriteBatch.DrawString(
+            spriteBatch.Draw(tekstura, new Rectangle(410, 390, 360, 80), Color.DarkMagenta);
          
+            // Draw the string
+            spriteBatch.DrawString(Font1, "Nagraj melodyjkê", new Vector2(40,390), Color.LightGreen,
+                0, Font1.MeasureString("Nagraj melodyjkê") / 2, 1.0f, SpriteEffects.None, 0.5f);
+            spriteBatch.DrawString(Font1, "Odtwórz melodyjkê", new Vector2(420, 390), Color.LightGreen,
+               0, Font1.MeasureString("Odtwórz melodyjkê") / 2, 1.0f, SpriteEffects.None, 0.5f);
             spriteBatch.End();
 
             base.Draw(gameTime);
