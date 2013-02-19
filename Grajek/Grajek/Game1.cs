@@ -120,9 +120,12 @@ namespace Grajek
             
 
             if ( ms.LeftButton == ButtonState.Pressed)
-            {                
-                synchronizator.NoteOn(aktualnyNrNuty);
-                nacisnietoKlawisz(aktualnyNrNuty);
+            {
+                if (aktualnyNrNuty != 15)
+                {
+                    synchronizator.NoteOn(aktualnyNrNuty);
+                    nacisnietoKlawisz(aktualnyNrNuty);
+                }
 
                 if (nagrywanieButton.Contains(new Point(ms.X, ms.Y)))
                 {
@@ -182,38 +185,47 @@ namespace Grajek
         }
 
         protected void wykryjNrAktualnegoKlawisza(MouseState poz)
-        {            
+        {
             if (poz.X < 130 && poz.X > 70 && poz.Y < 280)
                 aktualnyNrNuty = 1;
-            else if (poz.X < 100)
+            else if (poz.X < 100 && poz.Y < 360)
                 aktualnyNrNuty = 0;
             else if (poz.X < 230 && poz.X > 170 && poz.Y < 280)
                 aktualnyNrNuty = 3;
-            else if (poz.X < 201)
+            else if (poz.X < 201 && poz.Y < 360)
                 aktualnyNrNuty = 2;
             else if (poz.X < 430 && poz.X > 370 && poz.Y < 280)
                 aktualnyNrNuty = 6;
-            else if (poz.X < 301)
+            else if (poz.X < 301 && poz.Y < 360)
                 aktualnyNrNuty = 4;
-            else if (poz.X < 401)
+            else if (poz.X < 401 && poz.Y < 360)
                 aktualnyNrNuty = 5;
             else if (poz.X < 530 && poz.X > 470 && poz.Y < 280)
                 aktualnyNrNuty = 8;
-            else if (poz.X < 501)
+            else if (poz.X < 501 && poz.Y < 360)
                 aktualnyNrNuty = 7;
             else if (poz.X < 630 && poz.X > 570 && poz.Y < 280)
                 aktualnyNrNuty = 10;
-            else if (poz.X < 601)
+            else if (poz.X < 601 && poz.Y < 360)
                 aktualnyNrNuty = 9;
-            else if (poz.X < 701)
+            else if (poz.X < 701 && poz.Y < 360)
                 aktualnyNrNuty = 11;
-            else if (poz.X < 800)
+            else if (poz.X < 800 && poz.Y < 360)
                 aktualnyNrNuty = 12;
+            else
+                aktualnyNrNuty = 15;
         }
 
         protected void nacisnietoKlawisz(int nrNuty)
         {
-            if (sprawdzKlawisz.Length > nrNuty)
+            if (nrNuty == 15)
+            {
+                for (int i = 0; i < 13; i++)
+                {
+                    sprawdzKlawisz[i] = false;
+                }
+            }
+            else if (sprawdzKlawisz.Length > nrNuty)
                 sprawdzKlawisz[nrNuty] = true;
         }
 
