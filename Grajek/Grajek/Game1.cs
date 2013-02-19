@@ -31,13 +31,15 @@ namespace Grajek
         private bool[] sprawdzKlawisz;
         private List<Vector2> listaKlawiszy = new List<Vector2>();
         private Synth synchronizator;
+        private Rectangle nagrywanieButton = new Rectangle(30, 390, 360, 80);
+        private Rectangle odtwarzanieButton = new Rectangle(410, 390, 360, 80);
 
         private List<Klawisz> ListaNagrania; // Lista zapamiêtuje kolejno naciskane klawisze. Pos³u¿y do nagrywania
 
         private bool record = false; // Obs³u¿yæ ten przycisk !! Jako trigger true/false
         float timer; // Timer do odliczenia jak d³ugo by³ naciœniêty przycisk
         float timer_k2k; // Timer key to key, czyli czas od puszczenia przycisku do naciœcniêcia kolejnego. Nieobs³u¿one jeszcze
-
+        bool obszarNagrywanie=false, obszarOdtwarzanie=false;
 
         private bool press = false; //pomocniczy
        
@@ -93,7 +95,7 @@ namespace Grajek
             pozycjaKlawiszy = new Vector2(0, 0);
             rozmiarKlawiszy = new Vector2(800, 380);
 
-            Font1 = Content.Load<SpriteFont>("Arial");
+            Font1 = Content.Load<SpriteFont>("SpriteFont1");
 
             // TODO: Load your game content here            
            
@@ -113,12 +115,25 @@ namespace Grajek
 
             MouseState ms = Mouse.GetState();
 
-            wykryjNrAktualnegoKlawisza(ms);            
+            wykryjNrAktualnegoKlawisza(ms);
+
+            
 
             if ( ms.LeftButton == ButtonState.Pressed)
             {                
                 synchronizator.NoteOn(aktualnyNrNuty);
                 nacisnietoKlawisz(aktualnyNrNuty);
+
+                if (nagrywanieButton.Contains(new Point(ms.X, ms.Y)))
+                {
+                    //ListaNagrania.Clear();
+                    //record = true; 
+                }
+
+                if (odtwarzanieButton.Contains(new Point(ms.X, ms.Y)))
+                {
+                    //Play();
+                }
 
                 if (record == true)
                 {
@@ -301,15 +316,12 @@ namespace Grajek
                 }
             }
 
-            spriteBatch.Draw(tekstura, new Rectangle(30, 390, 360, 80), Color.DarkMagenta);
-            //spriteBatch.DrawString(
-            spriteBatch.Draw(tekstura, new Rectangle(410, 390, 360, 80), Color.DarkMagenta);
+            spriteBatch.Draw(tekstura, nagrywanieButton, null, Color.Snow, 0, Vector2.Zero, SpriteEffects.None, 1);
+            spriteBatch.DrawString(Font1, "Nagrywanie", new Vector2(130, 410), Color.Black, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
+
+            spriteBatch.Draw(tekstura, odtwarzanieButton, null, Color.Snow, 0, Vector2.Zero, SpriteEffects.None, 1);
+            spriteBatch.DrawString(Font1, "Odtwarzanie", new Vector2(500, 410), Color.Black, 0, Vector2.Zero, 1, SpriteEffects.None,0);
          
-            // Draw the string
-            spriteBatch.DrawString(Font1, "Nagraj melodyjkê", new Vector2(40,390), Color.LightGreen,
-                0, Font1.MeasureString("Nagraj melodyjkê") / 2, 1.0f, SpriteEffects.None, 0.5f);
-            spriteBatch.DrawString(Font1, "Odtwórz melodyjkê", new Vector2(420, 390), Color.LightGreen,
-               0, Font1.MeasureString("Odtwórz melodyjkê") / 2, 1.0f, SpriteEffects.None, 0.5f);
             spriteBatch.End();
 
             base.Draw(gameTime);
