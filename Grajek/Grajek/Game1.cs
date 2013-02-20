@@ -120,8 +120,19 @@ namespace Grajek
 
             if ( ms.LeftButton == ButtonState.Pressed)
             {
-                
 
+                if (nagrywanieButton.Contains(new Point(ms.X, ms.Y)) && record == false)
+                {
+                    //ListaNagrania.Clear();
+                    record = true;
+                }
+                else
+                {
+                    if (nagrywanieButton.Contains(new Point(ms.X, ms.Y)) && record == true)
+                    {
+                        record = false;
+                    }
+                }
                 
                 if (aktualnyNrNuty != 15)
                 {
@@ -133,24 +144,16 @@ namespace Grajek
                 if (record == true)
                 {
                     timer += (float)gameTime.ElapsedGameTime.TotalMilliseconds; //Rozpoczêcie naliczania "czasu przyciœciêcia klawisza"
-
                     press = true; // do nagrywania
                 }
             }
             else if (ms.LeftButton == ButtonState.Released)
             {
-                if (nagrywanieButton.Contains(new Point(ms.X, ms.Y)) && record == false)
-                {
-                    ListaNagrania.Clear();
-                    record = true;
-                }
-                //if (nagrywanieButton.Contains(new Point(ms.X, ms.Y)) && record == true)
-                //{
-                //    record = false;
-                //}
+                
                 synchronizator.NoteOff(aktualnyNrNuty); 
                 resetujKlawisz(aktualnyNrNuty);
 
+                
                 if (odtwarzanieButton.Contains(new Point(ms.X, ms.Y)))
                 {
                     Play();
@@ -190,7 +193,7 @@ namespace Grajek
 
                 // Trzeba zrobiæ przycisk "record" oraz "play" w record nale¿y czyœciæ ListeNagarania, oraz ustawiaæ "bool record" na true albo false triggerem.
             }
-            playing = false;
+            //playing = false;
         }
 
         protected void wykryjNrAktualnegoKlawisza(MouseState poz)
