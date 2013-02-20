@@ -37,10 +37,10 @@ namespace Grajek
         private List<Klawisz> ListaNagrania; // Lista zapamiêtuje kolejno naciskane klawisze. Pos³u¿y do nagrywania
 
         private bool record = false; // Obs³u¿yæ ten przycisk !! Jako trigger true/false
+        private bool playing = false;
         float timer; // Timer do odliczenia jak d³ugo by³ naciœniêty przycisk
         float timer_k2k; // Timer key to key, czyli czas od puszczenia przycisku do naciœcniêcia kolejnego. Nieobs³u¿one jeszcze
-        bool obszarNagrywanie=false, obszarOdtwarzanie=false;
-
+        MouseState oldState;
         private bool press = false; //pomocniczy
        
         private enum OscillatorTypes
@@ -114,29 +114,21 @@ namespace Grajek
                 this.Exit();     
 
             MouseState ms = Mouse.GetState();
-
-            wykryjNrAktualnegoKlawisza(ms);
-
             
+            wykryjNrAktualnegoKlawisza(ms);
+          
 
             if ( ms.LeftButton == ButtonState.Pressed)
             {
+                
+
+                
                 if (aktualnyNrNuty != 15)
                 {
                     synchronizator.NoteOn(aktualnyNrNuty);
                     nacisnietoKlawisz(aktualnyNrNuty);
                 }
-
-                if (nagrywanieButton.Contains(new Point(ms.X, ms.Y)))
-                {
-                    //ListaNagrania.Clear();
-                    //record = true; 
-                }
-
-                if (odtwarzanieButton.Contains(new Point(ms.X, ms.Y)))
-                {
-                    //Play();
-                }
+                               
 
                 if (record == true)
                 {
@@ -146,9 +138,23 @@ namespace Grajek
                 }
             }
             else if (ms.LeftButton == ButtonState.Released)
-            {  
+            {
+                if (nagrywanieButton.Contains(new Point(ms.X, ms.Y)) && record == false)
+                {
+                    ListaNagrania.Clear();
+                    record = true;
+                }
+                //if (nagrywanieButton.Contains(new Point(ms.X, ms.Y)) && record == true)
+                //{
+                //    record = false;
+                //}
                 synchronizator.NoteOff(aktualnyNrNuty); 
                 resetujKlawisz(aktualnyNrNuty);
+
+                if (odtwarzanieButton.Contains(new Point(ms.X, ms.Y)))
+                {
+                    Play();
+                }
 
                 if (record == true && press == true)
                 {
@@ -164,6 +170,7 @@ namespace Grajek
                 press = false; //rec
                 timer = 0;     //rec
             }
+            
 
             synchronizator.Update(gameTime);
             base.Update(gameTime);
@@ -171,6 +178,7 @@ namespace Grajek
 
         private void Play() // Odgrywanie zapamiêtanej piosenki
         {
+            playing = true;
             for (int i = 0; i < ListaNagrania.Count(); i++) 
             {
                 System.Threading.Thread.Sleep((int)ListaNagrania[i].oczekiwanie); // Czas oczekiwanie miêdzy naciœnieciem kolejnych klawiszy.
@@ -182,6 +190,7 @@ namespace Grajek
 
                 // Trzeba zrobiæ przycisk "record" oraz "play" w record nale¿y czyœciæ ListeNagarania, oraz ustawiaæ "bool record" na true albo false triggerem.
             }
+            playing = false;
         }
 
         protected void wykryjNrAktualnegoKlawisza(MouseState poz)
@@ -328,12 +337,14 @@ namespace Grajek
                 }
             }
 
-            spriteBatch.Draw(tekstura, nagrywanieButton, null, Color.Snow, 0, Vector2.Zero, SpriteEffects.None, 1);
+            if (record == true) spriteBatch.Draw(tekstura, nagrywanieButton, null, Color.Gray, 0, Vector2.Zero, SpriteEffects.None, 1);
+            if (record == false) spriteBatch.Draw(tekstura, nagrywanieButton, null, Color.Snow, 0, Vector2.Zero, SpriteEffects.None, 1);
             spriteBatch.DrawString(Font1, "Nagrywanie", new Vector2(130, 410), Color.Black, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
 
-            spriteBatch.Draw(tekstura, odtwarzanieButton, null, Color.Snow, 0, Vector2.Zero, SpriteEffects.None, 1);
+            if (playing == true) spriteBatch.Draw(tekstura, odtwarzanieButton, null, Color.Gray, 0, Vector2.Zero, SpriteEffects.None, 1);
+            if (playing == false) spriteBatch.Draw(tekstura, odtwarzanieButton, null, Color.Snow, 0, Vector2.Zero, SpriteEffects.None, 1);
             spriteBatch.DrawString(Font1, "Odtwarzanie", new Vector2(500, 410), Color.Black, 0, Vector2.Zero, 1, SpriteEffects.None,0);
-         
+            
             spriteBatch.End();
 
             base.Draw(gameTime);
