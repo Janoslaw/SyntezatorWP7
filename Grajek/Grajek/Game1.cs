@@ -10,6 +10,7 @@ using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Input.Touch;
 using Microsoft.Xna.Framework.Media;
+using System.ComponentModel;
 
 namespace Grajek
 {
@@ -22,6 +23,7 @@ namespace Grajek
 
     public class Game1 : Microsoft.Xna.Framework.Game
     {
+        private BackgroundWorker worker = new BackgroundWorker();
         private GraphicsDeviceManager graphics;
         private SpriteBatch spriteBatch;
         private SpriteFont Font1;
@@ -73,8 +75,13 @@ namespace Grajek
             synchronizator.FadeOutDuration = 20;
 
             ListaNagrania = new List<Klawisz>();
+
+            worker.WorkerReportsProgress = true;
+            worker.WorkerSupportsCancellation = true;
+            worker.DoWork += new DoWorkEventHandler(worker_DoWork);
+            worker.RunWorkerCompleted += new RunWorkerCompletedEventHandler(worker_RunWorkerCompleted);
         }
-      
+
         protected override void LoadContent()
         {
             spriteBatch = new SpriteBatch(GraphicsDevice);
@@ -165,10 +172,15 @@ namespace Grajek
         private void Play() // Odgrywanie zapamiêtanej piosenki
         {
             playing = true;
-            
-            for (int i = 0; i < ListaNagrania.Count(); i++) 
+            if(!worker.IsBusy)
+                worker.RunWorkerAsync();
+        }
+
+        void worker_DoWork(object sender, DoWorkEventArgs e)
+        {
+            for (int i = 0; i < ListaNagrania.Count(); i++)
             {
-                System.Threading.Thread.Sleep((int)ListaNagrania[i].oczekiwanie) ; // Czas oczekiwanie miêdzy naciœnieciem kolejnych klawiszy.
+                System.Threading.Thread.Sleep((int)ListaNagrania[i].oczekiwanie); // Czas oczekiwanie miêdzy naciœnieciem kolejnych klawiszy.
                 synchronizator.NoteOn(ListaNagrania[i].nr_klawisza); // zaczyna graæ
                 nacisnietoKlawisz(ListaNagrania[i].nr_klawisza);
                 System.Threading.Thread.Sleep((int)ListaNagrania[i].czas); // czeka "czas" - powinien przez ca³y ten czas graæ.
@@ -177,7 +189,10 @@ namespace Grajek
 
                 // Trzeba zrobiæ przycisk "record" oraz "play" w record nale¿y czyœciæ ListeNagarania, oraz ustawiaæ "bool record" na true albo false triggerem.
             }
+        }
 
+        void worker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
+        {
             playing = false;
         }
 
