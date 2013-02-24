@@ -174,13 +174,15 @@ namespace Grajek
         private void Play() // Odgrywanie zapamiêtanej piosenki
         {
             playing = true;
-            //if (!played)
-            //{
-                if (!worker.IsBusy)
-                {
-                    worker.RunWorkerAsync();
-                }
-           // }
+            
+            if (!worker.IsBusy)
+            {
+                worker.RunWorkerAsync();
+            }
+            else if (worker.CancellationPending)
+            {
+                playing = false;
+            }
         }
 
         void worker_DoWork(object sender, DoWorkEventArgs e)
@@ -195,12 +197,11 @@ namespace Grajek
                 synchronizator.NoteOff(ListaNagrania[i].nr_klawisza); //koñczy graæ
                 resetujKlawisz(ListaNagrania[i].nr_klawisza);
             }
+            
         }
 
         void worker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
-        {
-            playing = false;
-            //played = true;
+        {                       
             worker.CancelAsync();
         }
 
