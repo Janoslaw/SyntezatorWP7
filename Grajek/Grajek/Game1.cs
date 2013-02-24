@@ -23,7 +23,7 @@ namespace Grajek
 
     public class Game1 : Microsoft.Xna.Framework.Game
     {
-        private BackgroundWorker worker = new BackgroundWorker();
+        private BackgroundWorker worker;
         private GraphicsDeviceManager graphics;
         private SpriteBatch spriteBatch;
         private SpriteFont Font1;
@@ -77,11 +77,12 @@ namespace Grajek
 
             ListaNagrania = new List<Klawisz>();
 
+            worker = new BackgroundWorker();
             worker.WorkerReportsProgress = true;
             worker.WorkerSupportsCancellation = true;
             worker.DoWork += new DoWorkEventHandler(worker_DoWork);
             worker.RunWorkerCompleted += new RunWorkerCompletedEventHandler(worker_RunWorkerCompleted);
-  
+            worker.ProgressChanged += new ProgressChangedEventHandler(worker_ProgressChanged);
         }
 
         protected override void LoadContent()
@@ -144,7 +145,7 @@ namespace Grajek
                 {
                     record = false; 
                 }
-                
+
                 if (odtwarzanieButton.Contains(new Point(ms.X, ms.Y)) && playing == false)
                 {
                     Play();
@@ -165,7 +166,6 @@ namespace Grajek
                 press = false; //rec
                 timer = 0;     //rec
             }
-            
 
             synchronizator.Update(gameTime);
             base.Update(gameTime);
@@ -173,36 +173,50 @@ namespace Grajek
 
         private void Play() // Odgrywanie zapamiêtanej piosenki
         {
-            playing = true;
-            
             if (!worker.IsBusy)
-            {
+            {                
                 worker.RunWorkerAsync();
             }
-            else if (worker.CancellationPending)
-            {
-                playing = false;
-            }
         }
 
-        void worker_DoWork(object sender, DoWorkEventArgs e)
+        private void worker_DoWork(object sender, DoWorkEventArgs e)
         {
-            Debug.WriteLine("Worker nr: " + (j++));
-            for (int i = 0; i < ListaNagrania.Count(); i++)
+            if (worker.CancellationPending == true)
             {
-                System.Threading.Thread.Sleep((int)ListaNagrania[i].oczekiwanie); // Czas oczekiwanie miêdzy naciœnieciem kolejnych klawiszy.
-                synchronizator.NoteOn(ListaNagrania[i].nr_klawisza); // zaczyna graæ
-                nacisnietoKlawisz(ListaNagrania[i].nr_klawisza);
-                System.Threading.Thread.Sleep((int)ListaNagrania[i].czas); // czeka "czas" - powinien przez ca³y ten czas graæ.
-                synchronizator.NoteOff(ListaNagrania[i].nr_klawisza); //koñczy graæ
-                resetujKlawisz(ListaNagrania[i].nr_klawisza);
+                e.Cancel = true;                
             }
-            
+            else 
+            {
+                playing = true;
+                Debug.WriteLine("Worker nr: " + (j++));
+                for (int i = 0; i < ListaNagrania.Count(); i++)
+                {
+                    System.Threading.Thread.Sleep((int)ListaNagrania[i].oczekiwanie); // Czas oczekiwanie miêdzy naciœnieciem kolejnych klawiszy.
+                    synchronizator.NoteOn(ListaNagrania[i].nr_klawisza); // zaczyna graæ
+                    nacisnietoKlawisz(ListaNagrania[i].nr_klawisza);
+                    System.Threading.Thread.Sleep((int)ListaNagrania[i].czas); // czeka "czas" - powinien przez ca³y ten czas graæ.
+                    synchronizator.NoteOff(ListaNagrania[i].nr_klawisza); //koñczy graæ
+                    resetujKlawisz(ListaNagrania[i].nr_klawisza);
+
+                    if (i == ListaNagrania.Count()-1) worker.ReportProgress(100);
+                }
+            }
         }
 
-        void worker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
-        {                       
-            worker.CancelAsync();
+        private void worker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
+        {            
+            if (e.Cancelled == true)
+            {
+                playing = false;            
+            }
+        }
+
+        private void worker_ProgressChanged(object sender, ProgressChangedEventArgs e)
+        {
+            if (e.ProgressPercentage >= 100)
+            {
+                worker.CancelAsync();
+            }
         }
 
         protected void wykryjNrAktualnegoKlawisza(MouseState poz)
