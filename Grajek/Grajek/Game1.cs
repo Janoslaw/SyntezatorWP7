@@ -23,7 +23,7 @@ namespace Grajek
 
     public class Game1 : Microsoft.Xna.Framework.Game
     {
-        private BackgroundWorker worker;
+        private BackgroundWorker worker = new BackgroundWorker();
         private GraphicsDeviceManager graphics;
         private SpriteBatch spriteBatch;
         private SpriteFont Font1;
@@ -43,9 +43,9 @@ namespace Grajek
         private bool record = false; // Obs³u¿yæ ten przycisk !! Jako trigger true/false
         private bool playing = false;
         private bool played = false;
+        private bool recorded = false;
         private float timer; // Timer do odliczenia jak d³ugo by³ naciœniêty przycisk
-        private float timer_k2k; // Timer key to key, czyli czas od puszczenia przycisku do naciœcniêcia kolejnego. Nieobs³u¿one jeszcze
-        
+
         private bool press = false; //pomocniczy
         private enum OscillatorTypes
         {
@@ -77,12 +77,11 @@ namespace Grajek
 
             ListaNagrania = new List<Klawisz>();
 
-            worker = new BackgroundWorker();
             worker.WorkerReportsProgress = true;
             worker.WorkerSupportsCancellation = true;
             worker.DoWork += new DoWorkEventHandler(worker_DoWork);
             worker.RunWorkerCompleted += new RunWorkerCompletedEventHandler(worker_RunWorkerCompleted);
-            worker.ProgressChanged += new ProgressChangedEventHandler(worker_ProgressChanged);
+
         }
 
         protected override void LoadContent()
@@ -105,50 +104,64 @@ namespace Grajek
         }
 
         protected override void UnloadContent() { }
-       
+
         protected override void Update(GameTime gameTime)
         {
-           // played = false;
+            // played = false;
             MouseState ms = Mouse.GetState();
 
             if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed)
-                this.Exit();     
+                this.Exit();
 
             wykryjNrAktualnegoKlawisza(ms);
 
-            if ( ms.LeftButton == ButtonState.Pressed)
-            {                
+            if (ms.LeftButton == ButtonState.Pressed)
+            {
                 if (aktualnyNrNuty != 15)
                 {
                     synchronizator.NoteOn(aktualnyNrNuty);
                     nacisnietoKlawisz(aktualnyNrNuty);
                 }
-                               
+
                 if (record == true)
                 {
                     timer += (float)gameTime.ElapsedGameTime.TotalMilliseconds; //Rozpoczêcie naliczania "czasu przyciœciêcia klawisza"
                     press = true; // do nagrywania
                 }
+
+                played = true;
             }
             else if (ms.LeftButton == ButtonState.Released)
             {
-                synchronizator.NoteOff(aktualnyNrNuty); 
+                synchronizator.NoteOff(aktualnyNrNuty);
                 resetujKlawisz(aktualnyNrNuty);
-                
+
 
                 if (nagrywanieButton.Contains(new Point(ms.X, ms.Y)) && record == false)
                 {
+                    recorded = true;
                     ListaNagrania.Clear();
                     record = true;
+                    played = true;
+
                 }
-                if (nagrywanieStopButton.Contains(new Point(ms.X, ms.Y)) && record == true)
+                if (nagrywanieStopButton.Contains(new Point(ms.X, ms.Y)))
                 {
-                    record = false; 
+                    if (recorded)
+                    {
+                        playing = false;
+                        recorded = false;
+                    }
+
+                    record = false;
+
                 }
 
-                if (odtwarzanieButton.Contains(new Point(ms.X, ms.Y)) && playing == false)
+                if (odtwarzanieButton.Contains(new Point(ms.X, ms.Y)) && record == false && recorded == false)
                 {
                     Play();
+                    //recorded = true;
+                    // playing = false;
                 }
 
                 if (record == true && press == true)
@@ -167,28 +180,30 @@ namespace Grajek
                 timer = 0;     //rec
             }
 
+
             synchronizator.Update(gameTime);
             base.Update(gameTime);
         }
 
         private void Play() // Odgrywanie zapamiêtanej piosenki
         {
+
             if (!worker.IsBusy)
-            {                
+            {
                 worker.RunWorkerAsync();
+                playing = true;
+                // played = true;
             }
+
+            if (!played)
+                playing = false;
         }
 
-        private void worker_DoWork(object sender, DoWorkEventArgs e)
+        void worker_DoWork(object sender, DoWorkEventArgs e)
         {
-            if (worker.CancellationPending == true)
+            Debug.WriteLine("Worker nr: " + (j++));
+            if (played)
             {
-                e.Cancel = true;                
-            }
-            else 
-            {
-                playing = true;
-                Debug.WriteLine("Worker nr: " + (j++));
                 for (int i = 0; i < ListaNagrania.Count(); i++)
                 {
                     System.Threading.Thread.Sleep((int)ListaNagrania[i].oczekiwanie); // Czas oczekiwanie miêdzy naciœnieciem kolejnych klawiszy.
@@ -197,26 +212,13 @@ namespace Grajek
                     System.Threading.Thread.Sleep((int)ListaNagrania[i].czas); // czeka "czas" - powinien przez ca³y ten czas graæ.
                     synchronizator.NoteOff(ListaNagrania[i].nr_klawisza); //koñczy graæ
                     resetujKlawisz(ListaNagrania[i].nr_klawisza);
-
-                    if (i == ListaNagrania.Count()-1) worker.ReportProgress(100);
                 }
             }
         }
 
-        private void worker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
-        {            
-            if (e.Cancelled == true)
-            {
-                playing = false;            
-            }
-        }
-
-        private void worker_ProgressChanged(object sender, ProgressChangedEventArgs e)
+        void worker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
         {
-            if (e.ProgressPercentage >= 100)
-            {
-                worker.CancelAsync();
-            }
+            played = false;
         }
 
         protected void wykryjNrAktualnegoKlawisza(MouseState poz)
@@ -269,7 +271,7 @@ namespace Grajek
             if (sprawdzKlawisz.Length > nrNuty)
                 sprawdzKlawisz[nrNuty] = false;
         }
-       
+
         protected override void Draw(GameTime gameTime)
         {
             GraphicsDevice.Clear(Color.CornflowerBlue);
@@ -371,9 +373,11 @@ namespace Grajek
             spriteBatch.DrawString(Font1, "Stop", new Vector2(270, 410), Color.Black, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
 
             if (playing == true) spriteBatch.Draw(tekstura, odtwarzanieButton, null, Color.Gray, 0, Vector2.Zero, SpriteEffects.None, 1);
-            if (playing == false) spriteBatch.Draw(tekstura, odtwarzanieButton, null, Color.Snow, 0, Vector2.Zero, SpriteEffects.None, 1);
-            spriteBatch.DrawString(Font1, "Play", new Vector2(570, 410), Color.Black, 0, Vector2.Zero, 1, SpriteEffects.None,0);
-            
+            if (playing == false)
+            {
+                spriteBatch.Draw(tekstura, odtwarzanieButton, null, Color.Snow, 0, Vector2.Zero, SpriteEffects.None, 1);
+            }
+            spriteBatch.DrawString(Font1, "Play", new Vector2(570, 410), Color.Black, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
             spriteBatch.End();
 
             base.Draw(gameTime);
