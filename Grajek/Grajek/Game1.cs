@@ -39,9 +39,10 @@ namespace Grajek
         private Rectangle odtwarzanieButton = new Rectangle(420, 390, 360, 80);
 
         private List<Klawisz> ListaNagrania; // Lista zapamiêtuje kolejno naciskane klawisze. Pos³u¿y do nagrywania
-
+        int j = 0;
         private bool record = false; // Obs³u¿yæ ten przycisk !! Jako trigger true/false
         private bool playing = false;
+        private bool played = false;
         private float timer; // Timer do odliczenia jak d³ugo by³ naciœniêty przycisk
         private float timer_k2k; // Timer key to key, czyli czas od puszczenia przycisku do naciœcniêcia kolejnego. Nieobs³u¿one jeszcze
         
@@ -80,6 +81,7 @@ namespace Grajek
             worker.WorkerSupportsCancellation = true;
             worker.DoWork += new DoWorkEventHandler(worker_DoWork);
             worker.RunWorkerCompleted += new RunWorkerCompletedEventHandler(worker_RunWorkerCompleted);
+  
         }
 
         protected override void LoadContent()
@@ -105,6 +107,7 @@ namespace Grajek
        
         protected override void Update(GameTime gameTime)
         {
+           // played = false;
             MouseState ms = Mouse.GetState();
 
             if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed)
@@ -128,9 +131,9 @@ namespace Grajek
             }
             else if (ms.LeftButton == ButtonState.Released)
             {
-                
                 synchronizator.NoteOff(aktualnyNrNuty); 
                 resetujKlawisz(aktualnyNrNuty);
+                
 
                 if (nagrywanieButton.Contains(new Point(ms.X, ms.Y)) && record == false)
                 {
@@ -139,12 +142,11 @@ namespace Grajek
                 }
                 if (nagrywanieStopButton.Contains(new Point(ms.X, ms.Y)) && record == true)
                 {
-                    record = false;
+                    record = false; 
                 }
                 
-                if (odtwarzanieButton.Contains(new Point(ms.X, ms.Y)))
+                if (odtwarzanieButton.Contains(new Point(ms.X, ms.Y)) && playing == false)
                 {
-                    //Debug.WriteLine("X: " + ms.X + " Y: " + ms.Y);
                     Play();
                 }
 
@@ -172,12 +174,18 @@ namespace Grajek
         private void Play() // Odgrywanie zapamiêtanej piosenki
         {
             playing = true;
-            if(!worker.IsBusy)
-                worker.RunWorkerAsync();
+            //if (!played)
+            //{
+                if (!worker.IsBusy)
+                {
+                    worker.RunWorkerAsync();
+                }
+           // }
         }
 
         void worker_DoWork(object sender, DoWorkEventArgs e)
         {
+            Debug.WriteLine("Worker nr: " + (j++));
             for (int i = 0; i < ListaNagrania.Count(); i++)
             {
                 System.Threading.Thread.Sleep((int)ListaNagrania[i].oczekiwanie); // Czas oczekiwanie miêdzy naciœnieciem kolejnych klawiszy.
@@ -186,14 +194,14 @@ namespace Grajek
                 System.Threading.Thread.Sleep((int)ListaNagrania[i].czas); // czeka "czas" - powinien przez ca³y ten czas graæ.
                 synchronizator.NoteOff(ListaNagrania[i].nr_klawisza); //koñczy graæ
                 resetujKlawisz(ListaNagrania[i].nr_klawisza);
-
-                // Trzeba zrobiæ przycisk "record" oraz "play" w record nale¿y czyœciæ ListeNagarania, oraz ustawiaæ "bool record" na true albo false triggerem.
             }
         }
 
         void worker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
         {
             playing = false;
+            //played = true;
+            worker.CancelAsync();
         }
 
         protected void wykryjNrAktualnegoKlawisza(MouseState poz)
