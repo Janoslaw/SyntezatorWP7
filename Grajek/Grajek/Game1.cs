@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Diagnostics;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Content;
@@ -21,9 +22,9 @@ namespace Grajek
 
     public class Game1 : Microsoft.Xna.Framework.Game
     {
-        GraphicsDeviceManager graphics;
-        SpriteBatch spriteBatch;
-        SpriteFont Font1;
+        private GraphicsDeviceManager graphics;
+        private SpriteBatch spriteBatch;
+        private SpriteFont Font1;
         private Texture2D tekstura;
         private Vector2 pozycjaKlawiszy;
         private Vector2 rozmiarKlawiszy;
@@ -31,18 +32,18 @@ namespace Grajek
         private bool[] sprawdzKlawisz;
         private List<Vector2> listaKlawiszy = new List<Vector2>();
         private Synth synchronizator;
-        private Rectangle nagrywanieButton = new Rectangle(30, 390, 360, 80);
-        private Rectangle odtwarzanieButton = new Rectangle(410, 390, 360, 80);
+        private Rectangle nagrywanieButton = new Rectangle(10, 390, 180, 80);
+        private Rectangle nagrywanieStopButton = new Rectangle(210, 390, 180, 80);
+        private Rectangle odtwarzanieButton = new Rectangle(420, 390, 360, 80);
 
         private List<Klawisz> ListaNagrania; // Lista zapamiêtuje kolejno naciskane klawisze. Pos³u¿y do nagrywania
 
         private bool record = false; // Obs³u¿yæ ten przycisk !! Jako trigger true/false
         private bool playing = false;
-        float timer; // Timer do odliczenia jak d³ugo by³ naciœniêty przycisk
-        float timer_k2k; // Timer key to key, czyli czas od puszczenia przycisku do naciœcniêcia kolejnego. Nieobs³u¿one jeszcze
-        MouseState oldState;
+        private float timer; // Timer do odliczenia jak d³ugo by³ naciœniêty przycisk
+        private float timer_k2k; // Timer key to key, czyli czas od puszczenia przycisku do naciœcniêcia kolejnego. Nieobs³u¿one jeszcze
+        
         private bool press = false; //pomocniczy
-       
         private enum OscillatorTypes
         {
             Sine,
@@ -55,18 +56,14 @@ namespace Grajek
         {
             graphics = new GraphicsDeviceManager(this);
             Content.RootDirectory = "Content";
-
             // Frame rate is 30 fps by default for Windows Phone.
             TargetElapsedTime = TimeSpan.FromTicks(333333);
-
             // Extend battery life under lock.
             InactiveSleepTime = TimeSpan.FromSeconds(1);
         }
 
         protected override void Initialize()
         {
-            // TODO: Add your initialization logic here
-           
             base.Initialize();
 
             synchronizator = new Synth();
@@ -80,7 +77,6 @@ namespace Grajek
       
         protected override void LoadContent()
         {
-            // Create a new SpriteBatch, which can be used to draw textures.
             spriteBatch = new SpriteBatch(GraphicsDevice);
 
             //rysujemy klawisze
@@ -96,51 +92,27 @@ namespace Grajek
             rozmiarKlawiszy = new Vector2(800, 380);
 
             Font1 = Content.Load<SpriteFont>("SpriteFont1");
+        }
 
-            // TODO: Load your game content here            
-           
-            // TODO: use this.Content to load your game content here
-        }
-      
-        protected override void UnloadContent()
-        {
-            // TODO: Unload any non ContentManager content here
-        }
+        protected override void UnloadContent() { }
        
         protected override void Update(GameTime gameTime)
         {
-            // Allows the game to exit
+            MouseState ms = Mouse.GetState();
+
             if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed)
                 this.Exit();     
 
-            MouseState ms = Mouse.GetState();
-            
             wykryjNrAktualnegoKlawisza(ms);
-          
 
             if ( ms.LeftButton == ButtonState.Pressed)
-            {
-
-                if (nagrywanieButton.Contains(new Point(ms.X, ms.Y)) && record == false)
-                {
-                    //ListaNagrania.Clear();
-                    record = true;
-                }
-                else
-                {
-                    if (nagrywanieButton.Contains(new Point(ms.X, ms.Y)) && record == true)
-                    {
-                        record = false;
-                    }
-                }
-                
+            {                
                 if (aktualnyNrNuty != 15)
                 {
                     synchronizator.NoteOn(aktualnyNrNuty);
                     nacisnietoKlawisz(aktualnyNrNuty);
                 }
                                
-
                 if (record == true)
                 {
                     timer += (float)gameTime.ElapsedGameTime.TotalMilliseconds; //Rozpoczêcie naliczania "czasu przyciœciêcia klawisza"
@@ -153,9 +125,19 @@ namespace Grajek
                 synchronizator.NoteOff(aktualnyNrNuty); 
                 resetujKlawisz(aktualnyNrNuty);
 
+                if (nagrywanieButton.Contains(new Point(ms.X, ms.Y)) && record == false)
+                {
+                    ListaNagrania.Clear();
+                    record = true;
+                }
+                if (nagrywanieStopButton.Contains(new Point(ms.X, ms.Y)) && record == true)
+                {
+                    record = false;
+                }
                 
                 if (odtwarzanieButton.Contains(new Point(ms.X, ms.Y)))
                 {
+                    //Debug.WriteLine("X: " + ms.X + " Y: " + ms.Y);
                     Play();
                 }
 
@@ -168,6 +150,7 @@ namespace Grajek
                     kl.oczekiwanie = 0;// tu nale¿y wstawiæ i obs³u¿yæ timer_k2k.
 
                     ListaNagrania.Add(kl);
+                    Debug.WriteLine("Klawisz nr: " + kl.nr_klawisza + "|Oczekiwanie: " + kl.oczekiwanie + "|Czas: " + kl.czas);
                 }
 
                 press = false; //rec
@@ -182,9 +165,10 @@ namespace Grajek
         private void Play() // Odgrywanie zapamiêtanej piosenki
         {
             playing = true;
+            
             for (int i = 0; i < ListaNagrania.Count(); i++) 
             {
-                System.Threading.Thread.Sleep((int)ListaNagrania[i].oczekiwanie); // Czas oczekiwanie miêdzy naciœnieciem kolejnych klawiszy.
+                System.Threading.Thread.Sleep((int)ListaNagrania[i].oczekiwanie) ; // Czas oczekiwanie miêdzy naciœnieciem kolejnych klawiszy.
                 synchronizator.NoteOn(ListaNagrania[i].nr_klawisza); // zaczyna graæ
                 nacisnietoKlawisz(ListaNagrania[i].nr_klawisza);
                 System.Threading.Thread.Sleep((int)ListaNagrania[i].czas); // czeka "czas" - powinien przez ca³y ten czas graæ.
@@ -193,30 +177,31 @@ namespace Grajek
 
                 // Trzeba zrobiæ przycisk "record" oraz "play" w record nale¿y czyœciæ ListeNagarania, oraz ustawiaæ "bool record" na true albo false triggerem.
             }
-            //playing = false;
+
+            playing = false;
         }
 
         protected void wykryjNrAktualnegoKlawisza(MouseState poz)
         {
-            if (poz.X < 130 && poz.X > 70 && poz.Y < 280)
+            if (poz.X < 130 && poz.X > 70 && poz.Y < 190)
                 aktualnyNrNuty = 1;
             else if (poz.X < 100 && poz.Y < 360)
                 aktualnyNrNuty = 0;
-            else if (poz.X < 230 && poz.X > 170 && poz.Y < 280)
+            else if (poz.X < 230 && poz.X > 170 && poz.Y < 190)
                 aktualnyNrNuty = 3;
             else if (poz.X < 201 && poz.Y < 360)
                 aktualnyNrNuty = 2;
-            else if (poz.X < 430 && poz.X > 370 && poz.Y < 280)
+            else if (poz.X < 430 && poz.X > 370 && poz.Y < 190)
                 aktualnyNrNuty = 6;
             else if (poz.X < 301 && poz.Y < 360)
                 aktualnyNrNuty = 4;
             else if (poz.X < 401 && poz.Y < 360)
                 aktualnyNrNuty = 5;
-            else if (poz.X < 530 && poz.X > 470 && poz.Y < 280)
+            else if (poz.X < 530 && poz.X > 470 && poz.Y < 190)
                 aktualnyNrNuty = 8;
             else if (poz.X < 501 && poz.Y < 360)
                 aktualnyNrNuty = 7;
-            else if (poz.X < 630 && poz.X > 570 && poz.Y < 280)
+            else if (poz.X < 630 && poz.X > 570 && poz.Y < 190)
                 aktualnyNrNuty = 10;
             else if (poz.X < 601 && poz.Y < 360)
                 aktualnyNrNuty = 9;
@@ -342,11 +327,14 @@ namespace Grajek
 
             if (record == true) spriteBatch.Draw(tekstura, nagrywanieButton, null, Color.Gray, 0, Vector2.Zero, SpriteEffects.None, 1);
             if (record == false) spriteBatch.Draw(tekstura, nagrywanieButton, null, Color.Snow, 0, Vector2.Zero, SpriteEffects.None, 1);
-            spriteBatch.DrawString(Font1, "Nagrywanie", new Vector2(130, 410), Color.Black, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
+            spriteBatch.DrawString(Font1, "Record", new Vector2(55, 410), Color.Black, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
+
+            spriteBatch.Draw(tekstura, nagrywanieStopButton, null, Color.Snow, 0, Vector2.Zero, SpriteEffects.None, 1);
+            spriteBatch.DrawString(Font1, "Stop", new Vector2(270, 410), Color.Black, 0, Vector2.Zero, 1, SpriteEffects.None, 0);
 
             if (playing == true) spriteBatch.Draw(tekstura, odtwarzanieButton, null, Color.Gray, 0, Vector2.Zero, SpriteEffects.None, 1);
             if (playing == false) spriteBatch.Draw(tekstura, odtwarzanieButton, null, Color.Snow, 0, Vector2.Zero, SpriteEffects.None, 1);
-            spriteBatch.DrawString(Font1, "Odtwarzanie", new Vector2(500, 410), Color.Black, 0, Vector2.Zero, 1, SpriteEffects.None,0);
+            spriteBatch.DrawString(Font1, "Play", new Vector2(570, 410), Color.Black, 0, Vector2.Zero, 1, SpriteEffects.None,0);
             
             spriteBatch.End();
 
