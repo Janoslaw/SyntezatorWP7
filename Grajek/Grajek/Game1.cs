@@ -45,6 +45,8 @@ namespace Grajek
         private bool played = false;
         private bool recorded = false;
         private float timer; // Timer do odliczenia jak d³ugo by³ naciœniêty przycisk
+        private float timerk2k;
+        private bool release;
 
         private bool press = false; //pomocniczy
         private enum OscillatorTypes
@@ -107,7 +109,6 @@ namespace Grajek
 
         protected override void Update(GameTime gameTime)
         {
-            // played = false;
             MouseState ms = Mouse.GetState();
 
             if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed)
@@ -130,12 +131,18 @@ namespace Grajek
                 }
 
                 played = true;
+                release = false;
             }
             else if (ms.LeftButton == ButtonState.Released)
             {
                 synchronizator.NoteOff(aktualnyNrNuty);
                 resetujKlawisz(aktualnyNrNuty);
 
+                if (record == true)
+                {
+                    timerk2k += (float)gameTime.ElapsedGameTime.TotalMilliseconds; //Rozpoczêcie naliczania "czasu przyciœciêcia klawisza"
+                    release = true; 
+                }
 
                 if (nagrywanieButton.Contains(new Point(ms.X, ms.Y)) && record == false)
                 {
@@ -154,14 +161,11 @@ namespace Grajek
                     }
 
                     record = false;
-
                 }
 
                 if (odtwarzanieButton.Contains(new Point(ms.X, ms.Y)) && record == false && recorded == false)
                 {
                     Play();
-                    //recorded = true;
-                    // playing = false;
                 }
 
                 if (record == true && press == true)
@@ -170,9 +174,11 @@ namespace Grajek
                     Klawisz kl = new Klawisz();
                     kl.nr_klawisza = aktualnyNrNuty;
                     kl.czas = timer;
-                    kl.oczekiwanie = 0;// tu nale¿y wstawiæ i obs³u¿yæ timer_k2k.
+                    kl.oczekiwanie = timerk2k;// tu nale¿y wstawiæ i obs³u¿yæ timer_k2k.
 
                     ListaNagrania.Add(kl);
+                    timerk2k = 0;
+
                     Debug.WriteLine("Klawisz nr: " + kl.nr_klawisza + "|Oczekiwanie: " + kl.oczekiwanie + "|Czas: " + kl.czas);
                 }
 
@@ -201,7 +207,6 @@ namespace Grajek
 
         void worker_DoWork(object sender, DoWorkEventArgs e)
         {
-            Debug.WriteLine("Worker nr: " + (j++));
             if (played)
             {
                 for (int i = 0; i < ListaNagrania.Count(); i++)
