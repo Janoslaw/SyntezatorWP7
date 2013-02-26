@@ -39,14 +39,13 @@ namespace Grajek
         private Rectangle odtwarzanieButton = new Rectangle(420, 390, 360, 80);
 
         private List<Klawisz> ListaNagrania; // Lista zapamiêtuje kolejno naciskane klawisze. Pos³u¿y do nagrywania
-        int j = 0;
         private bool record = false; // Obs³u¿yæ ten przycisk !! Jako trigger true/false
         private bool playing = false;
         private bool played = false;
         private bool recorded = false;
+
         private float timer; // Timer do odliczenia jak d³ugo by³ naciœniêty przycisk
         private float timerk2k;
-        private bool release;
 
         private bool press = false; //pomocniczy
         private enum OscillatorTypes
@@ -131,7 +130,6 @@ namespace Grajek
                 }
 
                 played = true;
-                release = false;
             }
             else if (ms.LeftButton == ButtonState.Released)
             {
@@ -141,7 +139,6 @@ namespace Grajek
                 if (record == true)
                 {
                     timerk2k += (float)gameTime.ElapsedGameTime.TotalMilliseconds; //Rozpoczêcie naliczania "czasu przyciœciêcia klawisza"
-                    release = true; 
                 }
 
                 if (nagrywanieButton.Contains(new Point(ms.X, ms.Y)) && record == false)
@@ -176,7 +173,11 @@ namespace Grajek
                     kl.czas = timer;
                     kl.oczekiwanie = timerk2k;// tu nale¿y wstawiæ i obs³u¿yæ timer_k2k.
 
-                    ListaNagrania.Add(kl);
+                    if (kl.nr_klawisza != 15)
+                    {
+                        ListaNagrania.Add(kl);
+                    }
+
                     timerk2k = 0;
 
                     Debug.WriteLine("Klawisz nr: " + kl.nr_klawisza + "|Oczekiwanie: " + kl.oczekiwanie + "|Czas: " + kl.czas);
@@ -198,7 +199,6 @@ namespace Grajek
             {
                 worker.RunWorkerAsync();
                 playing = true;
-                // played = true;
             }
 
             if (!played)
